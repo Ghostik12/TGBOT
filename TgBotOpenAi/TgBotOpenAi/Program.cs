@@ -1,4 +1,10 @@
-﻿using Telegram.Bot;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Linq.Expressions;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -10,6 +16,7 @@ namespace TgBotOpenAi
     {
         private static ITelegramBotClient _client;
         private static ReceiverOptions _receiverOptions;
+        private static HttpClient _httpClient;
 
         static async Task Main(string[] args)
         {
@@ -34,17 +41,61 @@ namespace TgBotOpenAi
             await Task.Delay(-1);
         }
 
+        public class CustomConverter
+        {
+            public string role { get; set; }
+            public string type { get; set; }
+            public string content { get; set; }
+            public string content_type { get; set; }
+        }
+
         private static async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                switch (update.Type)
+
+                if (update.Message == update.Message)
                 {
-                    case UpdateType.Message:
-                        {
-                            Console.WriteLine("Wirten");
-                            return;
-                        }
+                    //var request = new HttpRequestMessage(HttpMethod.Post, "https://api.coze.com/open_api/v2/chat");
+
+                    //request.Headers.Add("Accept", "application/json");
+                    //request.Headers.Add("Host", "api.coze.com");
+                    //request.Headers.Add("Connection", "keep-alive");
+                    //request.Headers.Add("Authorization", "Bearer pat_3OvmHRzUnmA4ny4FXdfvyXLSFgDBKRVZNtZEOCwHbkfKzGZsVjggr8dJvUxN7I18");
+
+                    //var con = "{\r\n    \"conversation_id\": \"123\",\r\n    \"bot_id\": \"7387461427646939141\",\r\n    \"user\": \"123333333\",\r\n    \"query\": \"Hi\",\r\n    \"stream\":false\r\n}";
+                    //request.Content = new StringContent(con, Encoding.UTF8, "application/json");
+                    //var response = await _httpClient.SendAsync(request);
+                    //if (response.StatusCode != HttpStatusCode.OK)
+                    //{
+                    //    string str = await response.Content.ReadAsStringAsync();
+                    //    throw new Exception("Response is " + str + "\r\n" + "Code is " + response.StatusCode);
+                    //}
+
+                    //var responseBody = await response.Content.ReadAsStringAsync();
+                    //var resp = responseBody.ToString();
+                    //await _client.SendTextMessageAsync(update.Id, resp);
+
+                    Dictionary<string, string> par = new Dictionary<string, string>()
+                    {
+                        //{"Authorization", "Bearer pat_3OvmHRzUnmA4ny4FXdfvyXLSFgDBKRVZNtZEOCwHbkfKzGZsVjggr8dJvUxN7I18" },
+                        //{"Content-Type", "application/json" },
+                        //{"Accept", "*/*" },
+                        //{"Host", "api.coze.com" },
+                        //{"Connection", "keep-alive" },
+                        {"conversation_id", "123" },
+                        {"bot_id", "7387461427646939141" },
+                        {"user", "123333333" },
+                        {"query", $"{update.Message}" },
+                        {"stream", "false" }
+                    };
+
+                    var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
+                    var json = answer.Content.ReadAsStringAsync().Result;
+                    var a = JsonConvert.DeserializeObject<CustomConverter>(json);
+                    string b = JsonConvert.SerializeObject(a, Formatting.Indented);
+                    var yourObject = System.Text.Json.JsonDocument.Parse(json);
+                    Console.WriteLine(a.content);
                 }
             }
             catch (Exception ex)
@@ -65,6 +116,34 @@ namespace TgBotOpenAi
 
             Console.WriteLine(ErrorMessage);
             return Task.CompletedTask;
+        }
+
+        static async Task<HttpResponseMessage> GetRequest(string address, Dictionary<string, string> parameters)
+        {
+            HttpClient client = new HttpClient();
+            try
+            {
+                Uri uri = new Uri(address);
+                var content = new FormUrlEncodedContent(parameters);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer pat_3OvmHRzUnmA4ny4FXdfvyXLSFgDBKRVZNtZEOCwHbkfKzGZsVjggr8dJvUxN7I18");
+                client.DefaultRequestHeaders.Add("Accept", "*/*");
+                client.DefaultRequestHeaders.Add("Host", "api.coze.com");
+                client.DefaultRequestHeaders.Add("Connection", "keep-alive");
+
+
+               return await client.PostAsync(address, content);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e.ToString()}");
+            }
+            finally 
+            {
+                client.Dispose();
+            }
+
+            return null;
         }
     }
 }
