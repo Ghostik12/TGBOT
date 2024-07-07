@@ -12,11 +12,12 @@ using Telegram.Bot.Types.Enums;
 
 namespace TgBotOpenAi
 {
-    internal class Program
+     class Program
     {
         private static ITelegramBotClient _client;
         private static ReceiverOptions _receiverOptions;
         private static HttpClient _httpClient;
+        private static Dictionary<long, long> Count = new Dictionary<long, long>();
 
         static async Task Main(string[] args)
         {
@@ -56,37 +57,22 @@ namespace TgBotOpenAi
         private static async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
         {
             try
-            {
-
-                if (update.Message == update.Message)
+            { 
+                if (update.Type == UpdateType.Message)
                 {
-                    //var request = new HttpRequestMessage(HttpMethod.Post, "https://api.coze.com/open_api/v2/chat");
-
-                    //request.Headers.Add("Accept", "application/json");
-                    //request.Headers.Add("Host", "api.coze.com");
-                    //request.Headers.Add("Connection", "keep-alive");
-                    //request.Headers.Add("Authorization", "Bearer pat_3OvmHRzUnmA4ny4FXdfvyXLSFgDBKRVZNtZEOCwHbkfKzGZsVjggr8dJvUxN7I18");
-
-                    //var con = "{\r\n    \"conversation_id\": \"123\",\r\n    \"bot_id\": \"7387461427646939141\",\r\n    \"user\": \"123333333\",\r\n    \"query\": \"Hi\",\r\n    \"stream\":false\r\n}";
-                    //request.Content = new StringContent(con, Encoding.UTF8, "application/json");
-                    //var response = await _httpClient.SendAsync(request);
-                    //if (response.StatusCode != HttpStatusCode.OK)
-                    //{
-                    //    string str = await response.Content.ReadAsStringAsync();
-                    //    throw new Exception("Response is " + str + "\r\n" + "Code is " + response.StatusCode);
-                    //}
-
-                    //var responseBody = await response.Content.ReadAsStringAsync();
-                    //var resp = responseBody.ToString();
-                    //await _client.SendTextMessageAsync(update.Id, resp);
+                    string message = Convert.ToString(update.Message).Replace(" ","");
+                    var countWords = message.Length;
+                    if (!Count.ContainsKey(update.Message.Chat.Id))
+                    {
+                        Count.Add(update.Message.Chat.Id, + 1);
+                    }
+                    else
+                    {
+                        Count[update.Message.Chat.Id] += 1;
+                    }
 
                     Dictionary<string, string> par = new Dictionary<string, string>()
                     {
-                        //{"Authorization", "Bearer pat_3OvmHRzUnmA4ny4FXdfvyXLSFgDBKRVZNtZEOCwHbkfKzGZsVjggr8dJvUxN7I18" },
-                        //{"Content-Type", "application/json" },
-                        //{"Accept", "*/*" },
-                        //{"Host", "api.coze.com" },
-                        //{"Connection", "keep-alive" },
                         {"conversation_id", "123" },
                         {"bot_id", "7388135449996427269" },
                         {"user", "123333333" },
@@ -94,11 +80,9 @@ namespace TgBotOpenAi
                         {"stream", "false" }
                     };
 
+
                     var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
-                   var json = answer.Content.ReadAsStringAsync().Result;
-                    CustomConverter? a = JsonConvert.DeserializeObject<CustomConverter>(json);
-                    string b = JsonConvert.SerializeObject(a, Formatting.Indented);
-                    //var yourObject = System.Text.Json.JsonDocument.Parse(json);
+                    var json = answer.Content.ReadAsStringAsync().Result;
                     var jsonObj = JObject.Parse(json);
                     var messages = (JArray)jsonObj["messages"];
                     var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
@@ -106,10 +90,15 @@ namespace TgBotOpenAi
                     if (answerMessage != null)
                     {
                         var content = (string)answerMessage["content"];
-                        Console.WriteLine(content);
+                        await client.SendTextMessageAsync(update.Message.Chat.Id, content);
                     }
-                    
 
+                    foreach (var cou in Count)
+                        Console.WriteLine($"{cou.Key} : {cou.Value}");
+                }
+                else if(update.Message.Document != null)
+                {
+                    await _client.SendTextMessageAsync(update.Message.Chat.Id, "Извините, но документ не принимается");
                 }
             }
             catch (Exception ex)
