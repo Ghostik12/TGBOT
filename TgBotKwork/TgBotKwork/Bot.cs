@@ -17,7 +17,6 @@ namespace Module11
     class Bot : BackgroundService
     {
         private ITelegramBotClient _telegramClient;
-        //private InlineKeyboardController _inlinekeyboardController;
         private VoiceMessageController _voiceMessageController;
         private TextMessageController _textMessageController;
         private DefaultMessage _defaultMessage;
@@ -28,7 +27,6 @@ namespace Module11
             _voiceMessageController = voiceMessageController;
             _textMessageController = textMessageController;
             _defaultMessage = defaultMessage;
-            //_inlinekeyboardController = inlineKeyboardController;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -42,7 +40,7 @@ namespace Module11
         {
             if (update.Type == UpdateType.CallbackQuery)
             {
-                await _textMessageController.HandleCallBack(update.CallbackQuery, cancellationToken);
+                await _textMessageController.HandleCallBack(update.CallbackQuery, cancellationToken, update);
                 return;
             }
 

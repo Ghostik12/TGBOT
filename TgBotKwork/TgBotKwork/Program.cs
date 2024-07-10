@@ -29,11 +29,10 @@ namespace Module11
         public static void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddSingleton<ITelegramBotClient>(provide => new TelegramBotClient("6701661991:AAF8KBsKh04bMicis2u2WHNJ_eJ1cVPSvrM"));
+            services.AddSingleton<ITelegramBotClient>(provide => new TelegramBotClient("7420207255:AAHU12_FVEsEipI9K3twaFOjTyPJ9z1yh14"));
             services.AddHostedService<Bot>();
 
             services.AddTransient<DefaultMessage>();
-            //services.AddTransient<InlineKeyboardController>();
             services.AddTransient<TextMessageController>();
             services.AddTransient<VoiceMessageController>();
         }

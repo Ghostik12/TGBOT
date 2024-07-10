@@ -57,14 +57,16 @@ namespace TgBotOpenAi
         private static async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
         {
             try
-            { 
+            {
                 if (update.Type == UpdateType.Message)
                 {
-                    string message = Convert.ToString(update.Message).Replace(" ","");
+                    if(update.Message.Document)
+                    string message = Convert.ToString(update.Message).Replace(" ", "");
                     var countWords = message.Length;
+
                     if (!Count.ContainsKey(update.Message.Chat.Id))
                     {
-                        Count.Add(update.Message.Chat.Id, + 1);
+                        Count.Add(update.Message.Chat.Id, +1);
                     }
                     else
                     {
@@ -92,13 +94,8 @@ namespace TgBotOpenAi
                         var content = (string)answerMessage["content"];
                         await client.SendTextMessageAsync(update.Message.Chat.Id, content);
                     }
-
-                    foreach (var cou in Count)
+                      foreach (var cou in Count)
                         Console.WriteLine($"{cou.Key} : {cou.Value}");
-                }
-                else if(update.Message.Document != null)
-                {
-                    await _client.SendTextMessageAsync(update.Message.Chat.Id, "Извините, но документ не принимается");
                 }
             }
             catch (Exception ex)
