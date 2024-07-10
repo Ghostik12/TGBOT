@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TgBotKwork.Models
+namespace TgBotKwork.DAL.Entity
 {
-    public class MessagesBot
+    public class MessagesBotEntity
     {
-        public long chatId { get; set; }
+        public long chatId {  get; set; }
         public long messagesCount { get; set; }
         public long lettersCount { get; set; }
     }

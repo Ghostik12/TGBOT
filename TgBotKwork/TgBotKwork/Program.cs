@@ -6,6 +6,7 @@ using System;
 using System.Text;
 using Telegram.Bot;
 using Module11.Controllers;
+using TgBotKwork.BLL.Services;
 
 namespace Module11
 {
@@ -35,6 +36,8 @@ namespace Module11
             services.AddTransient<DefaultMessage>();
             services.AddTransient<TextMessageController>();
             services.AddTransient<VoiceMessageController>();
+            services.AddTransient<MessagesUsersService>();
+            services.AddTransient<MessagesBotService>();
         }
     }
 }

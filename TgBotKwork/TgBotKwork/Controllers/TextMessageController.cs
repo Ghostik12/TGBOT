@@ -4,6 +4,8 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using TgBotKwork.BLL.Models;
+using TgBotKwork.BLL.Services;
 
 namespace Module11.Controllers
 {
@@ -19,10 +21,14 @@ namespace Module11.Controllers
         private static List<long> Admins = new List<long>();
         private static TimeSpan sendTrothle = TimeSpan.FromSeconds(30);
         private static DateTime lastTimeMsg = new DateTime();
+        private static MessagesUsersService? _messagesUsersService;
+        private static MessagesBotService? _messagesBotService;
 
-        public TextMessageController(ITelegramBotClient telegramBotClient)
+        public TextMessageController(ITelegramBotClient telegramBotClient, MessagesUsersService messagesUsersService, MessagesBotService messagesBotService)
         {
             _telegramBotClient = telegramBotClient;
+            _messagesUsersService = messagesUsersService;
+            _messagesBotService = messagesBotService;
         }
 
         public async Task Handle(Message message, CancellationToken cancellationToken)
@@ -73,13 +79,18 @@ namespace Module11.Controllers
                         Console.WriteLine($"{message.Chat.Id}, write to bot");
                         var timeNow = DateTime.Now;
                         var countLetter = message.Text.Length;
-
-                        if (!CountMessage.ContainsKey(message.Chat.Id))
+                        var checkUser = _messagesUsersService.GetInfo(message.Chat.Id);
+                        if (checkUser.ChatId == message.Chat.Id)
                         {
                             if (countLetter < 500)
-                            {
-                                CountMessage.Add(message.Chat.Id, + 1);
-                                CountLetters.Add(message.Chat.Id, + countLetter);
+                            { 
+                                var msgUser = new TgBotKwork.BLL.Models.User()
+                                {
+                                    ChatId = message.Chat.Id,
+                                    LettersCount = countLetter,
+                                    MessagesCount = 1,
+                                };
+                                _messagesUsersService.Add(msgUser);
                                 var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
                                 var json = answer.Content.ReadAsStringAsync().Result;
                                 var jsonObj = JObject.Parse(json);
@@ -95,8 +106,13 @@ namespace Module11.Controllers
                                         return;
                                     }
                                     await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
-                                    CountLettersBot.Add(message.Chat.Id, + letters);
-                                    CountMessageBot.Add(message.Chat.Id, + 1);
+                                    var msgBot = new TgBotKwork.BLL.Models.Bots()
+                                    {
+                                        ChatId = message.Chat.Id,
+                                        LettersCount = letters,
+                                        MessagesCount = 1,
+                                    };
+                                    _messagesBotService.Update(msgBot);
                                     lastTimeMsg = DateTime.Now;
 
 
@@ -106,54 +122,60 @@ namespace Module11.Controllers
                             await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
                             return;
                         }
-                        else if (CountMessage.ContainsKey(message.Chat.Id))
+                        else if (checkUser.ChatId != 0)
                         {
-                            foreach (var letter in CountLetters)
+
+
+                            if (timeNow - lastTimeMsg < sendTrothle)
                             {
-                                if (letter.Key == message.Chat.Id)
-                                {
-                                    if (timeNow - lastTimeMsg < sendTrothle)
-                                    {
-                                        return;
-                                    }
-
-                                    CountLetters[message.Chat.Id] += countLetter;
-
-                                    if (message.Text.Length < 500 || CountLetters[message.Chat.Id] < 500)
-                                    {
-                                        CountMessage[message.Chat.Id] += 1;
-                                        var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
-                                        var json = answer.Content.ReadAsStringAsync().Result;
-                                        var jsonObj = JObject.Parse(json);
-                                        var messages = (JArray)jsonObj["messages"];
-                                        var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
-
-                                        if (answerMessage != null)
-                                        {
-                                            var content = (string)answerMessage["content"];
-                                            var letters = content.Length;
-                                            foreach (var letterSum in CountLettersBot)
-                                                if (letterSum.Key == message.Chat.Id)
-                                                {
-                                                    CountLettersBot[message.Chat.Id] += letters;
-                                                    if (letters > 3000 || CountLettersBot[message.Chat.Id] > 3000)
-                                                    {
-                                                        await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов в сумме!");
-                                                        return;
-                                                    }
-                                                    await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
-                                                    CountMessageBot[message.Chat.Id] += 1;
-                                                    lastTimeMsg = DateTime.Now;
-                                                }
-                                        }
-                                        return;
-                                    }
-                                    await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
-                                    return;
-                                }
-                                await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
                                 return;
                             }
+                            var msgUser = new TgBotKwork.BLL.Models.User()
+                            {
+                                ChatId = message.Chat.Id,
+                                MessagesCount = 0,
+                                LettersCount = countLetter,
+                            };
+                            _messagesUsersService.Update(msgUser);
+                            var infoLetters = _messagesUsersService.GetInfo(message.Chat.Id);
+                            if (message.Text.Length < 500 || infoLetters.LettersCount < 500)
+                            {
+                                msgUser.MessagesCount = 1;
+                                msgUser.LettersCount = 0;
+                                _messagesUsersService.Update(msgUser);
+                                var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
+                                var json = answer.Content.ReadAsStringAsync().Result;
+                                var jsonObj = JObject.Parse(json);
+                                var messages = (JArray)jsonObj["messages"];
+                                var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
+
+                                if (answerMessage != null)
+                                {
+                                    var content = (string)answerMessage["content"];
+                                    var letters = content.Length;
+                                    var bot = new Bots()
+                                    {
+                                        ChatId = message.Chat.Id,
+                                        MessagesCount = 0,
+                                        LettersCount = letters,
+                                    };
+                                    _messagesBotService.Update(bot);
+                                    var infoBot = _messagesBotService.GetInfo(message.Chat.Id);
+                                    if (letters > 3000 || infoBot.LettersCount > 3000)
+                                    {
+                                        await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов в сумме!");
+                                        return;
+                                    }
+                                    await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
+                                    bot.LettersCount = 0;
+                                    bot.MessagesCount = 1;
+                                    _messagesBotService.Update(bot);
+                                    lastTimeMsg = DateTime.Now;
+                                }
+                                return;
+                            }
+                            await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
+                            return;
                         }
 
                         break;

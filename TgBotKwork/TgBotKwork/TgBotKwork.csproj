@@ -15,4 +15,14 @@
     <PackageReference Include="Telegram.Bot" Version="19.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DAL\DB\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="DAL\DB\Tg.db">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

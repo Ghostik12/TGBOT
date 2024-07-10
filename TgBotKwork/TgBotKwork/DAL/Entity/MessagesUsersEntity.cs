@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TgBotKwork.Models
+namespace TgBotKwork.DAL.Entity
 {
-    class MessagesUsers
+    public class MessagesUsersEntity
     {
         public long chatId { get; set; }
         public long messagesCount { get; set; }
