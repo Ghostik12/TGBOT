@@ -2,7 +2,6 @@
 using TgBotKwork.DAL.Entity;
 using TgBotKwork.BLL.Models;
 using TgBotKwork.DAL.Repositories;
-using static TgBotKwork.DAL.Repositories.MessagesUsersRepository;
 
 namespace TgBotKwork.BLL.Services
 {
@@ -24,8 +23,6 @@ namespace TgBotKwork.BLL.Services
                 lettersCount = message.LettersCount,
             };
 
-            messagesBotRepository.Create(messageBotEntity);
-
             if (messagesBotRepository.Create(messageBotEntity) == 0)
                 throw new Exception();
         }
@@ -42,7 +39,8 @@ namespace TgBotKwork.BLL.Services
         public MessagesBot GetInfo(long chatId) 
         {
             var findGetInfo = messagesBotRepository.FindByChatId(chatId);
-            if (findGetInfo is null) throw new Exception();
+            if (findGetInfo == null)
+                return ConstructModelNull();
 
             return ConstructUserModel(findGetInfo);
         }
@@ -63,6 +61,11 @@ namespace TgBotKwork.BLL.Services
             return new MessagesBot(messagesBotEntity.chatId,
                 messagesBotEntity.messagesCount,
                 messagesBotEntity.lettersCount);
+        }
+
+        private MessagesBot ConstructModelNull()
+        {
+            return new MessagesBot(0, 0, 0);
         }
     }
 }

@@ -24,8 +24,6 @@ namespace TgBotKwork.BLL.Services
              lettersCount = messagesUsers.LettersCount,
              };
 
-            messagesUsersRepository.Create(messagesUser);
-
             if (messagesUsersRepository.Create(messagesUser) == 0)
                 throw new Exception();
         }

@@ -48,6 +48,18 @@ namespace Module11.Controllers
                     case "/start":
                         await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, $"{message.Chat.Username}, приветствую тебя в нашем боте!\n" +
                             $"Внимание!\nСообщение можно отправлять 1 раз в 30 секунд, а также у есть лимит на количеству символов их: 500 от вас и 3000 от бота.");
+                        _messagesUsersService.Add(new TgBotKwork.BLL.Models.User 
+                        {
+                            ChatId = message.Chat.Id,
+                            MessagesCount = 0,
+                            LettersCount = 0
+                        });
+                        _messagesBotService.Add(new TgBotKwork.BLL.Models.Bots
+                        {
+                            ChatId = message.Chat.Id,
+                            MessagesCount = 0,
+                            LettersCount = 0
+                        });
                         break;
                     case "/admin":
                         if (message.Chat.Id == 1451999567 || message.Chat.Id == 312720548)
@@ -64,8 +76,8 @@ namespace Module11.Controllers
                             },
                             new[]
                             {
-                                InlineKeyboardButton.WithCallbackData($"Обновление лимитов пользователя", $"UpU"),
-                                InlineKeyboardButton.WithCallbackData($"Обновление лимитов бота", $"UpB")
+                                InlineKeyboardButton.WithCallbackData($"Обновление пользователя", $"UpU"),
+                                InlineKeyboardButton.WithCallbackData($"Обновление бота", $"UpB")
                             }
                             });
                             await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Выбери что хочешь увидеть", cancellationToken: cancellationToken, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
@@ -79,104 +91,65 @@ namespace Module11.Controllers
                     default:
                         Console.WriteLine($"{message.Chat.Id}, write to bot");
                         var timeNow = DateTime.Now;
-                        var countLetter = message.Text.Length;
-                        var checkUser = _messagesUsersService.GetInfo(message.Chat.Id);
-                        if (checkUser.ChatId == 0)
+                        if (timeNow - lastTimeMsg < sendTrothle)
                         {
-                            if (countLetter < 500)
+                            return;
+                        }
+
+                        var countLetter = message.Text.Length;
+                        _messagesUsersService.Update(new TgBotKwork.BLL.Models.User
+                        {
+                            ChatId = message.Chat.Id,
+                            MessagesCount = 0,
+                            LettersCount = countLetter,
+                        });
+                        var checkUser = _messagesUsersService.GetInfo(message.Chat.Id);
+
+                        if (countLetter < 500 & checkUser.LettersCount < 500)
+                        {
+                            var User = new TgBotKwork.BLL.Models.User()
                             {
-                                var msgUser = new TgBotKwork.BLL.Models.User()
+                                ChatId = message.Chat.Id,
+                                LettersCount = 0,
+                                MessagesCount = 1,
+                            };
+                            _messagesUsersService.Update(User);
+                            var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
+                            var json = answer.Content.ReadAsStringAsync().Result;
+                            var jsonObj = JObject.Parse(json);
+                            var messages = (JArray)jsonObj["messages"];
+                            var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
+                            if (answerMessage != null)
+                            {
+                                var content = (string)answerMessage["content"];
+                                var letters = content.Length;
+                                var Bot = new Bots
                                 {
                                     ChatId = message.Chat.Id,
-                                    LettersCount = countLetter,
-                                    MessagesCount = 1,
+                                    MessagesCount = 0,
+                                    LettersCount = letters,
                                 };
-                                _messagesUsersService.Add(msgUser);
-                                var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
-                                var json = answer.Content.ReadAsStringAsync().Result;
-                                var jsonObj = JObject.Parse(json);
-                                var messages = (JArray)jsonObj["messages"];
-                                var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
-                                if (answerMessage != null)
+                                _messagesBotService.Update(Bot);
+                                var checkBot = _messagesBotService.GetInfo(message.Chat.Id);
+                                if (letters > 3000 || checkBot.LettersCount > 3000)
                                 {
-                                    var content = (string)answerMessage["content"];
-                                    var letters = content.Length;
-                                    if (letters > 3000)
-                                    {
-                                        await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов за раз!");
-                                        return;
-                                    }
-                                    await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
-                                    var msgBot = new TgBotKwork.BLL.Models.Bots()
-                                    {
-                                        ChatId = message.Chat.Id,
-                                        LettersCount = letters,
-                                        MessagesCount = 1,
-                                    };
-                                    _messagesBotService.Add(msgBot);
-                                    lastTimeMsg = DateTime.Now;
-
-
+                                    await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов за раз!");
+                                    return;
                                 }
-                                return;
+                                await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
+                                Bot.MessagesCount = 1;
+                                Bot.LettersCount = 0;
+                                _messagesBotService.Update(Bot);
+                                lastTimeMsg = DateTime.Now;
+
+
                             }
-                            await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
-                            return;
                         }
                         else
                         {
-                            if (timeNow - lastTimeMsg < sendTrothle)
-                            {
-                                return;
-                            }
-                            var msgUser = new TgBotKwork.BLL.Models.User()
-                            {
-                                ChatId = message.Chat.Id,
-                                MessagesCount = 0,
-                                LettersCount = countLetter,
-                            };
-                            _messagesUsersService.Update(msgUser);
-                            var infoLetters = _messagesUsersService.GetInfo(message.Chat.Id);
-                            if (message.Text.Length < 500 & infoLetters.LettersCount < 500)
-                            {
-                                msgUser.MessagesCount = 1;
-                                msgUser.LettersCount = 0;
-                                _messagesUsersService.Update(msgUser);
-                                var answer = GetRequest("https://api.coze.com/open_api/v2/chat", par).Result;
-                                var json = answer.Content.ReadAsStringAsync().Result;
-                                var jsonObj = JObject.Parse(json);
-                                var messages = (JArray)jsonObj["messages"];
-                                var answerMessage = messages.FirstOrDefault(message => (string)message["type"] == "answer");
-
-                                if (answerMessage != null)
-                                {
-                                    var content = (string)answerMessage["content"];
-                                    var letters = content.Length;
-                                    var bot = new Bots()
-                                    {
-                                        ChatId = message.Chat.Id,
-                                        MessagesCount = 0,
-                                        LettersCount = letters,
-                                    };
-                                    _messagesBotService.Update(bot);
-                                    var infoBot = _messagesBotService.GetInfo(message.Chat.Id);
-                                    if (letters > 3000 || infoBot.LettersCount > 3000)
-                                    {
-                                        await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов в сумме!");
-                                        return;
-                                    }
-                                    await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);
-                                    bot.LettersCount = 0;
-                                    bot.MessagesCount = 1;
-                                    _messagesBotService.Update(bot);
-                                    lastTimeMsg = DateTime.Now;
-                                }
-                                return;
-                            }
                             await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
                             return;
                         }
-
                         break;
                 }
             }
@@ -225,8 +198,8 @@ namespace Module11.Controllers
                 },
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"UpU"),
-                    InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"UpB")
+                    InlineKeyboardButton.WithCallbackData($"Обновление пользователя", $"UpU"),
+                    InlineKeyboardButton.WithCallbackData($"Обновление бота", $"UpB")
                 }
             });
 
