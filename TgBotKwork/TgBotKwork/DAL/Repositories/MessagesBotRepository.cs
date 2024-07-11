@@ -1,4 +1,5 @@
-﻿using TgBotKwork.DAL.Entity;
+﻿using Telegram.Bot.Types;
+using TgBotKwork.DAL.Entity;
 using static TgBotKwork.DAL.Repositories.MessagesBotRepository;
 
 namespace TgBotKwork.DAL.Repositories
@@ -10,9 +11,13 @@ namespace TgBotKwork.DAL.Repositories
             return Execute(@"insert into MessagesBot (chatId, messagesCount, lettersCount) values (:chatId, :messagesCount, :lettersCount)", botEntity);
         }
 
-        public IEnumerable<MessagesBotEntity> FindAll()
+        public long FindAll(long chatId)
         {
-            return Query<MessagesBotEntity>(@"select * from MessagesBot");
+            if (chatId == 0)
+               return QueryFirstOrDefault<long>(@"select SUM(messagesCount) from MessagesBot");
+
+            else
+                return QueryFirstOrDefault<long>(@"select SUM(lettersCount) from MessagesBot");
         }
 
         public MessagesBotEntity FindByChatId(long chatId)
@@ -22,21 +27,24 @@ namespace TgBotKwork.DAL.Repositories
 
         public int Update(MessagesBotEntity botEntity)
         {
-            return Execute(@"update MessagesBot set messagesCount = messagesCount + 1, lettersCount = lettersCount + :lettersCount where chatId = :chatId", botEntity);
+            if(botEntity.messagesCount == 1)
+                return Execute(@"update MessagesBot set messagesCount = messagesCount + 1, lettersCount = lettersCount + :lettersCount where chatId = :chatId", botEntity);
+            else
+                return Execute(@"update MessagesBot set messagesCount = messagesCount + 0, lettersCount = lettersCount + :lettersCount where chatId = :chatId", botEntity);
         }
 
-        public int DeleteById(long chatId)
+        public int UpdateStatistic()
         {
-            return Execute(@"delete from users where ChatId = :chatId_p", new { chatId_p = chatId });
+               return Execute(@"update MessagesBot set messagesCount = 0,lettersCount = 0 where messagesCount is not 0");
         }
 
         public interface IMessagesBotRepository
         {
             int Create(MessagesBotEntity botEntity);
             MessagesBotEntity FindByChatId(long chatId);
-            IEnumerable<MessagesBotEntity> FindAll();
+            long FindAll(long chatId);
             int Update(MessagesBotEntity botEntity);
-            int DeleteById(long chatId);
+            int UpdateStatistic();
         }
     }
 }

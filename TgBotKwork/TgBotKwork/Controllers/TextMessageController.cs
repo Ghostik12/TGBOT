@@ -64,7 +64,8 @@ namespace Module11.Controllers
                             },
                             new[]
                             {
-                                InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"Upd")
+                                InlineKeyboardButton.WithCallbackData($"Обновление лимитов пользователя", $"UpU"),
+                                InlineKeyboardButton.WithCallbackData($"Обновление лимитов бота", $"UpB")
                             }
                             });
                             await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Выбери что хочешь увидеть", cancellationToken: cancellationToken, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
@@ -80,10 +81,10 @@ namespace Module11.Controllers
                         var timeNow = DateTime.Now;
                         var countLetter = message.Text.Length;
                         var checkUser = _messagesUsersService.GetInfo(message.Chat.Id);
-                        if (checkUser.ChatId == message.Chat.Id)
+                        if (checkUser.ChatId == 0)
                         {
                             if (countLetter < 500)
-                            { 
+                            {
                                 var msgUser = new TgBotKwork.BLL.Models.User()
                                 {
                                     ChatId = message.Chat.Id,
@@ -112,7 +113,7 @@ namespace Module11.Controllers
                                         LettersCount = letters,
                                         MessagesCount = 1,
                                     };
-                                    _messagesBotService.Update(msgBot);
+                                    _messagesBotService.Add(msgBot);
                                     lastTimeMsg = DateTime.Now;
 
 
@@ -122,10 +123,8 @@ namespace Module11.Controllers
                             await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
                             return;
                         }
-                        else if (checkUser.ChatId != 0)
+                        else
                         {
-
-
                             if (timeNow - lastTimeMsg < sendTrothle)
                             {
                                 return;
@@ -138,7 +137,7 @@ namespace Module11.Controllers
                             };
                             _messagesUsersService.Update(msgUser);
                             var infoLetters = _messagesUsersService.GetInfo(message.Chat.Id);
-                            if (message.Text.Length < 500 || infoLetters.LettersCount < 500)
+                            if (message.Text.Length < 500 & infoLetters.LettersCount < 500)
                             {
                                 msgUser.MessagesCount = 1;
                                 msgUser.LettersCount = 0;
@@ -194,7 +193,7 @@ namespace Module11.Controllers
                 Uri uri = new Uri(address);
                 var content = new FormUrlEncodedContent(parameters);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Authorization", "Bearer pat_rDxvy0zWMaq5VleoE9lQdl9Nsc4CJFX9SSdex2nEl190ujA5ZK8fpuNEDqKN91j3");
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer pat_srMpsnFFQEsjHS7JLop6CFIhhZ4cGoW8zOtjyVw8wztQAUXSYYXYh3WZ252Tfmen");
                 client.DefaultRequestHeaders.Add("Accept", "*/*");
                 client.DefaultRequestHeaders.Add("Host", "api.coze.com");
                 client.DefaultRequestHeaders.Add("Connection", "keep-alive");
@@ -226,7 +225,8 @@ namespace Module11.Controllers
                 },
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"Upd")
+                    InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"UpU"),
+                    InlineKeyboardButton.WithCallbackData($"Обновление лимитов", $"UpB")
                 }
             });
 
@@ -237,38 +237,32 @@ namespace Module11.Controllers
             switch (languageText)
             {
                 case "SMU":
-                    var smu = CountMessage.Values.Sum();
+                    var smu = _messagesUsersService.GetSum(0);
                     await _telegramBotClient?.SendTextMessageAsync(callbackQuery.From.Id, $"Сумма сообщений боту: {smu}", cancellationToken: ct);
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
                     break;
                 case "SLU":
-                    var slu = CountLetters.Values.Sum();
+                    var slu = _messagesUsersService.GetSum(1);
                     await _telegramBotClient?.SendTextMessageAsync(callbackQuery.From.Id, $"Сумма символов боту: {slu}", cancellationToken: ct);
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
                     break;
                 case "SMB":
-                    var smb = CountMessageBot.Values.Sum();
+                    var smb = _messagesBotService.GetSum(0);
                     await _telegramBotClient?.SendTextMessageAsync(callbackQuery.From.Id, $"Сумма сообщений от бота: {smb}", cancellationToken: ct);
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
                     break;
                 case "SLB":
-                    var slb = CountLettersBot.Values.Sum();
+                    var slb = _messagesBotService.GetSum(1);
                     await _telegramBotClient?.SendTextMessageAsync(callbackQuery.From.Id, $"Сумма симовлов от бота: {slb}", cancellationToken: ct);
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
                     break;
-                case "Upd":
-                    foreach (var count in CountMessage)
-                        CountMessage[count.Key] = 0;
-
-                    foreach (var count in CountMessageBot)
-                        CountMessageBot[count.Key] = 0;
-
-                    foreach (var count in CountLetters)
-                        CountLetters[count.Key] = 0;
-
-                    foreach (var count in CountLettersBot)
-                        CountLettersBot[count.Key] = 0;
-
+                case "UpU":
+                    var u = _messagesUsersService.UpdateStatistic();
+                    await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, $"Информация обновленна");
+                    await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
+                    break;
+                case "UpB":
+                    var b = _messagesBotService.UpdateStatistic();
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, $"Информация обновленна");
                     await _telegramBotClient.SendTextMessageAsync(callbackQuery.From.Id, "Выбери что хочешь увидеть", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: buttons);
                     break;

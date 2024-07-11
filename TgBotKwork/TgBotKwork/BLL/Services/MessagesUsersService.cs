@@ -15,8 +15,7 @@ namespace TgBotKwork.BLL.Services
         }
         public void Add(User messagesUsers)
         {
-             if (messagesUsersRepository.FindByChatId(messagesUsers.ChatId) == null)
-                 throw new ArgumentNullException();
+             
 
              var messagesUser = new MessagesUsersEntity()
              {
@@ -46,15 +45,32 @@ namespace TgBotKwork.BLL.Services
         public MessagesUsers? GetInfo(long chatId) 
         {
             var findGetInfo = messagesUsersRepository.FindByChatId(chatId);
-            //if (findGetInfo is null) throw new Exception();
+            if (findGetInfo is null)
+                return ConstructModelNull();
 
             return ConstructUserModel(findGetInfo);
         }
+
+        public int UpdateStatistic()
+        {
+            return messagesUsersRepository.UpdateStatistic();
+        }
+
+        public long GetSum(long chatId)
+        {
+            return messagesUsersRepository.FindAll(chatId);
+        }
+
         private MessagesUsers? ConstructUserModel(MessagesUsersEntity? messagesUsersEntity)
         {
             return new MessagesUsers(messagesUsersEntity.chatId,
                 messagesUsersEntity.messagesCount,
                 messagesUsersEntity.lettersCount);
+        }
+
+        private MessagesUsers ConstructModelNull()
+        {
+            return new MessagesUsers(0, 0, 0);
         }
     }
 }

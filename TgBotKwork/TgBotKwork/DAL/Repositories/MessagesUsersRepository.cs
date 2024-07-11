@@ -16,9 +16,12 @@ namespace TgBotKwork.DAL.Repositories
             return Execute(@"insert into MessagesUsers (chatId, messagesCount, lettersCount) values (:chatId, :messagesCount, :lettersCount)", messagesUsersEntity);
         }
 
-        public IEnumerable<MessagesUsersEntity> FindAll()
+        public long FindAll(long chatId)
         {
-            return Query<MessagesUsersEntity>(@"select * from MessagesUsers");
+            if (chatId == 0)
+                return QueryFirstOrDefault<long>(@"select SUM(messagesCount) from MessagesUsers");
+            else
+                return QueryFirstOrDefault<long>(@"select SUM(lettersCount) from MessagesUsers");
         }
 
         public MessagesUsersEntity FindByChatId(long chatId)
@@ -34,18 +37,18 @@ namespace TgBotKwork.DAL.Repositories
             return Execute(@"update MessagesUsers set messagesCount = messagesCount + 0, lettersCount = lettersCount + :lettersCount where chatId = :chatId", messagesUsersEntity);
         }
 
-        public int DeleteById(long chatId)
+        public int UpdateStatistic()
         {
-            return Execute(@"delete from MessagesUsers where ChatId = :chatId_p", new { chatId_p = chatId });
+                return Execute(@"update MessagesUsers set messagesCount = 0, lettersCount = 0 where messagesCount is not 0");
         }
 
         public interface IMessagesUsersRepository
         {
             int Create(MessagesUsersEntity userEntity);
             MessagesUsersEntity FindByChatId(long chatId);
-            IEnumerable<MessagesUsersEntity> FindAll();
+            long FindAll(long chatId);
             int Update(MessagesUsersEntity userEntity);
-            int DeleteById(long chatId);
+            int UpdateStatistic();
         }
     }
 }

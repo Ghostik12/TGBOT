@@ -2,6 +2,7 @@
 using TgBotKwork.DAL.Entity;
 using TgBotKwork.BLL.Models;
 using TgBotKwork.DAL.Repositories;
+using static TgBotKwork.DAL.Repositories.MessagesUsersRepository;
 
 namespace TgBotKwork.BLL.Services
 {
@@ -14,7 +15,7 @@ namespace TgBotKwork.BLL.Services
             messagesBotRepository = new MessagesBotRepository();
         }
 
-        public void Add(MessagesBot message)
+        public void Add(Bots message)
         {
             var messageBotEntity = new MessagesBotEntity()
             {
@@ -44,6 +45,16 @@ namespace TgBotKwork.BLL.Services
             if (findGetInfo is null) throw new Exception();
 
             return ConstructUserModel(findGetInfo);
+        }
+
+        public int UpdateStatistic()
+        {
+            return messagesBotRepository.UpdateStatistic();
+        }
+
+        public long GetSum(long chatId)
+        {
+            return messagesBotRepository.FindAll(chatId);
         }
 
         private MessagesBot ConstructUserModel(MessagesBotEntity messagesBotEntity)
