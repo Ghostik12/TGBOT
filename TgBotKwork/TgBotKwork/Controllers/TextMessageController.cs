@@ -141,13 +141,17 @@ namespace Module11.Controllers
                                 Bot.LettersCount = 0;
                                 _messagesBotService.Update(Bot);
                                 lastTimeMsg = DateTime.Now;
-
-
                             }
                         }
                         else
                         {
                             await _telegramBotClient?.SendTextMessageAsync(message.Chat.Id, "Вы превысили лимит в 500 символов");
+                            _messagesUsersService.Update(new TgBotKwork.BLL.Models.User
+                            {
+                                ChatId = message.Chat.Id,
+                                MessagesCount = 0,
+                                LettersCount = - countLetter,
+                            });
                             return;
                         }
                         break;

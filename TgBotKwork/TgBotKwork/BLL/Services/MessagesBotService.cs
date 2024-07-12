@@ -35,6 +35,7 @@ namespace TgBotKwork.BLL.Services
                 messagesCount = message.MessagesCount,
                 lettersCount = message.LettersCount,
             };
+            messagesBotRepository.Update(messageBotEntity);
         }
         public MessagesBot GetInfo(long chatId) 
         {
