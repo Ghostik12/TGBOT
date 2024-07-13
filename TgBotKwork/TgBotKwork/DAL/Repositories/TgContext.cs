@@ -43,7 +43,7 @@ namespace TgBotKwork.DAL.Repositories
         }
         private IDbConnection CreateConnection()
         {
-            return new SQLiteConnection("Data Source = D:\\Проекты\\1kworkTGBOTOpenAi\\TgBotKwork\\TgBotKwork\\DAL\\DB\\Tg.db; Version = 3");
+            return new SQLiteConnection(@"Data Source = D:\Проекты\1kworkTGBOTOpenAi\TgBotKwork\TgBotKwork\DAL\DB\TgBot.db; Version = 3");
         }
     }
 }

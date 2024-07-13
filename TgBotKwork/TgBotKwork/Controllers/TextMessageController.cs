@@ -134,6 +134,12 @@ namespace Module11.Controllers
                                 if (letters > 3000 || checkBot.LettersCount > 3000)
                                 {
                                     await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, "Боту позволенно отправлять не более 3000 символов за раз!");
+                                    _messagesUsersService.Update(new TgBotKwork.BLL.Models.User
+                                    {
+                                        ChatId = message.Chat.Id,
+                                        MessagesCount = 0,
+                                        LettersCount = - countLetter,
+                                    });
                                     return;
                                 }
                                 await _telegramBotClient.SendTextMessageAsync(message.Chat.Id, content);

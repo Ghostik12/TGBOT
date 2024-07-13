@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>84cc4235-208c-4f72-bc99-4340bef3c7ac</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,11 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DAL\DB\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="DAL\DB\Tg.db">
+    <None Update="DAL\DB\TgBot.db">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="DAL\DB\TgBot.sqbpro">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
